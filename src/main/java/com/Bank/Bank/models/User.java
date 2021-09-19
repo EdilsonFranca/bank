@@ -1,5 +1,6 @@
 package com.Bank.Bank.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -7,6 +8,8 @@ import javax.persistence.*;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -20,6 +23,7 @@ import javax.validation.constraints.Size;
 public class User {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@JsonIgnore
 	private Long id;
 
 	@NotBlank(message="o Nome não pode ser vazios")
@@ -36,5 +40,7 @@ public class User {
 	@NotBlank(message="a Senha não pode ser vazios")
 	@Size(min = 8  , message="Senha muito curta")
 	@Size(max = 20)
+	@JsonIgnore
 	private String password;
+
 }

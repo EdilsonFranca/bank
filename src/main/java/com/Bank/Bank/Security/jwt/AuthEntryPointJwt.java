@@ -26,7 +26,7 @@ public class AuthEntryPointJwt implements AuthenticationEntryPoint {
 		       logger.error("error Não autorizado: {}", authException.getMessage());
 
 			   Map<String, Object> map = new HashMap<>();
-               map.put("error", "Email ou Senha invalida");
+               map.put("error", "Acesso negado");
 
                response.setContentType("application/json");
                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
