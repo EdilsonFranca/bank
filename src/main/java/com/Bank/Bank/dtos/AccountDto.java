@@ -20,7 +20,7 @@ public class AccountDto {
     private String number;
 
     @NotNull(message="o Saldo não pode ser vazios")
-    @Min(value = 1, message = "saldo deve ser maior ou igual a zero")
+    @Min(value = 0, message = "saldo deve ser maior ou igual a zero")
     private BigDecimal balance;
 
     private UserDto userDto;
