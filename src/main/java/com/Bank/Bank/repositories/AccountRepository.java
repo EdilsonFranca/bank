@@ -8,5 +8,5 @@ import java.util.Optional;
 public interface AccountRepository extends CrudRepository<Account, Long> {
     boolean existsByNumber(String number);
 
-    Optional<Account> getByNumber(String number);
+    Optional<Account> findByNumber(String number);
 }

@@ -7,6 +7,7 @@ import com.Bank.Bank.models.Transfer;
 import com.Bank.Bank.models.User;
 import com.Bank.Bank.repositories.AccountRepository;
 import com.Bank.Bank.repositories.TransferRepository;
+import com.Bank.Bank.request.FindByNumberRequest;
 import com.Bank.Bank.request.TransferRequest;
 import com.Bank.Bank.response.MessageResponse;
 import org.springframework.beans.BeanUtils;
@@ -36,7 +37,8 @@ public class AccountController {
     TransferRepository transferRepository;
 
     @PostMapping
-    public ResponseEntity<?> registerAccount(@Valid @RequestBody AccountDto accountDto,@AuthenticationPrincipal UserDetailsImpl userDetails) {
+    public ResponseEntity<?> registerAccount(@Valid @RequestBody AccountDto accountDto,
+                                             @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
         if (accountRepository.existsByNumber(accountDto.getNumber())) {
             MessageResponse error = new MessageResponse("Já existe uma conta com o número informado!");
@@ -55,19 +57,20 @@ public class AccountController {
 
     @Transactional
     @PostMapping(value = "/transfer")
-    public ResponseEntity<?> transferAccount(@Valid @RequestBody TransferRequest transferRequest, @AuthenticationPrincipal UserDetailsImpl userDetails) {
+    public ResponseEntity<?> transferAccount(@Valid @RequestBody TransferRequest transferRequest,
+                                             @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
         MessageResponse error = new MessageResponse();
 
-        Optional<Account> source_account_optional       = accountRepository.getByNumber(transferRequest.getSource_account_number());
-        Optional<Account> destination_account_optional  = accountRepository.getByNumber(transferRequest.getDestination_account_number());
+        Optional<Account> source_account_optional       = accountRepository.findByNumber(transferRequest.getSource_account_number());
+        Optional<Account> destination_account_optional  = accountRepository.findByNumber(transferRequest.getDestination_account_number());
 
         boolean source_account_not_found      = !source_account_optional.isPresent();
         boolean destination_account_not_found = !destination_account_optional.isPresent();
 
         if(source_account_not_found) {
-              error.setError("Conta de origem não encontrada para o usuário informado!");
-             return new ResponseEntity<>(error,HttpStatus.BAD_REQUEST);
+            error.setError("Conta de origem não encontrada para o usuário informado!");
+            return new ResponseEntity<>(error,HttpStatus.BAD_REQUEST);
         }
 
         if(destination_account_not_found) {
@@ -78,7 +81,9 @@ public class AccountController {
         Account source_account      = source_account_optional.get();
         Account destination_account = destination_account_optional.get();
 
-        if(source_account.getBalance().compareTo(transferRequest.getAmount()) != 1){
+        final boolean not_have_enough_balance = source_account.getBalance().compareTo(transferRequest.getAmount()) != 1;
+
+        if(not_have_enough_balance){
             error.setError("Saldo insuficiente!");
             return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
         }
@@ -99,6 +104,21 @@ public class AccountController {
 
         transferRepository.save(transfer);
         return new ResponseEntity<>(transfer, HttpStatus.CREATED);
+    }
+
+    @PostMapping(value = "/balance")
+    public ResponseEntity<?> balanceAccount(@RequestBody FindByNumberRequest numberRequest) {
+        Optional<Account> account = accountRepository.findByNumber(numberRequest.getAccount_number());
+        MessageResponse error     = new MessageResponse();
+
+        if(!account.isPresent()){
+            error.setError("Conta não encontrada para o usuário informado!");
+            return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+        }
+
+        numberRequest.setBalance(account.get().getBalance());
+
+        return new ResponseEntity<>(numberRequest, HttpStatus.FOUND);
     }
 
     private User getUser(@AuthenticationPrincipal UserDetailsImpl userDetails) {
