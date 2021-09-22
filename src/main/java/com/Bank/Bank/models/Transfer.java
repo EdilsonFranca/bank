@@ -26,8 +26,8 @@ public class Transfer {
     @NotBlank(message="número da conta de destino não pode ser vazios")
     private String destination_account_number;
 
-    @NotNull(message="o Saldo não pode ser vazios")
-    @Min(value = 0, message = "saldo deve ser maior ou igual a zero")
+    @NotNull(message="o valor não pode ser vazios")
+    @Min(value = 1, message = "Valor deve ser maior que zero")
     private BigDecimal amount;
 
     @OneToOne

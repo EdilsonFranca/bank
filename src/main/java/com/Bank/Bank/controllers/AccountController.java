@@ -10,20 +10,20 @@ import com.Bank.Bank.repositories.TransferRepository;
 import com.Bank.Bank.request.FindByNumberRequest;
 import com.Bank.Bank.request.TransferRequest;
 import com.Bank.Bank.response.MessageResponse;
+import com.Bank.Bank.services.AccountSevice;
+import com.Bank.Bank.services.TransferService;
+import com.Bank.Bank.services.UserService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
 import javax.transaction.Transactional;
 import javax.validation.Valid;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @RestController
 @CrossOrigin(origins="*")
@@ -35,6 +35,15 @@ public class AccountController {
 
     @Autowired
     TransferRepository transferRepository;
+
+    @Autowired
+    TransferService transferService;
+
+    @Autowired
+    UserService userService;
+
+    @Autowired
+    AccountSevice accountSevice;
 
     @PostMapping
     public ResponseEntity<?> registerAccount(@Valid @RequestBody AccountDto accountDto,
@@ -48,7 +57,7 @@ public class AccountController {
         Account account = new Account();
         BeanUtils.copyProperties(accountDto, account);
 
-        User user = getUser(userDetails);
+        User user = userService.getUser(userDetails);
 
         account.setUser(user);
         accountRepository.save(account);
@@ -81,33 +90,23 @@ public class AccountController {
         Account source_account      = source_account_optional.get();
         Account destination_account = destination_account_optional.get();
 
-        final boolean not_have_enough_balance = source_account.getBalance().compareTo(transferRequest.getAmount()) != 1;
-
-        if(not_have_enough_balance){
+        if(accountSevice.not_have_enough_balance(transferRequest, source_account)){
             error.setError("Saldo insuficiente!");
             return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
         }
 
-        source_account.setBalance(source_account.getBalance().subtract(transferRequest.getAmount()));
-        destination_account.setBalance(destination_account.getBalance().add(transferRequest.getAmount()));
+        User user          = userService.getUser(userDetails);
+        Transfer transfer  = transferService.transfer(transferRequest, source_account, destination_account, user);
 
         accountRepository.save(source_account);
         accountRepository.save(destination_account);
-
-        User user = getUser(userDetails);
-
-        Transfer transfer = new Transfer();
-
-        BeanUtils.copyProperties(transferRequest, transfer);
-
-        transfer.setUser_transfer(user);
-
         transferRepository.save(transfer);
+
         return new ResponseEntity<>(transfer, HttpStatus.CREATED);
     }
 
     @PostMapping(value = "/balance")
-    public ResponseEntity<?> balanceAccount(@RequestBody FindByNumberRequest numberRequest) {
+    public ResponseEntity<?> balanceAccount(@Valid @RequestBody FindByNumberRequest numberRequest) {
         Optional<Account> account = accountRepository.findByNumber(numberRequest.getAccount_number());
         MessageResponse error     = new MessageResponse();
 
@@ -121,23 +120,18 @@ public class AccountController {
         return new ResponseEntity<>(numberRequest, HttpStatus.FOUND);
     }
 
-    private User getUser(@AuthenticationPrincipal UserDetailsImpl userDetails) {
-        User user = new User();
-        BeanUtils.copyProperties(userDetails, user);
-        return user;
-    }
-
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public Map<String, String> handleValidationExceptions(MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new HashMap<>();
+    public Map<String, List<String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, List<String>> errors = new HashMap<>();
 
+        List<String> errorsList = new ArrayList<>();
         ex.getBindingResult().getAllErrors().forEach((error) -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
+            errorsList.add(error.getDefaultMessage());
         });
 
+        errors.put("error", errorsList);
         return errors;
     }
+
 }

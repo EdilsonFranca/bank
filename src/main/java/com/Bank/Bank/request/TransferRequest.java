@@ -1,6 +1,5 @@
 package com.Bank.Bank.request;
 
-import com.Bank.Bank.dtos.UserDto;
 import com.Bank.Bank.models.User;
 import lombok.Getter;
 import lombok.Setter;
@@ -20,7 +19,7 @@ public class TransferRequest {
     private String destination_account_number;
 
     @NotNull(message="o Saldo não pode ser vazios")
-    @Min(value = 0, message = "saldo deve ser maior ou igual a zero")
+    @Min(value = 1, message = "Valor deve ser maior que zero")
     private BigDecimal amount;
 
     private User user_transfer;
